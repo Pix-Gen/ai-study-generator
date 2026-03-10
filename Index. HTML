@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .file-upload-section {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            flex: 1;
+            min-width: 250px;
+            font-size: 14px;
+        }
+
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #f5c6cb;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h2 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin: 30px 0;
+        }
+
+        .flashcard {
+            border: 2px solid #667eea;
+            padding: 25px;
+            margin: 15px 0;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .flashcard:hover {
+            transform: perspective(1000px) rotateY(5deg);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .flashcard.flipped {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-color: #ff6b6b;
+        }
+
+        .flashcard-content {
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .quiz-question {
+            background: #f9f9f9;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .quiz-question p {
+            margin: 0 0 18px 0;
+            font-weight: bold;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .quiz-option {
+            margin: 12px 0;
+        }
+
+        .quiz-option label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            gap: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .quiz-option label:hover {
+            background: #f0f0f0;
+        }
+
+        .quiz-option input[type="radio"] {
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+        }
+
+        #score {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            display: none;
+            border-left: 5px solid #28a745;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+        }
+
+        #score.show {
+            display: block;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .file-upload-section {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group button {
+                width: 100%;
+            }
+
+            .flashcard {
+                min-height: 100px;
+                padding: 15px;
+            }
+
+            .flashcard-content {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>🎓 AI Study Generator</h1>
+
+<div class="container">
+
+    <div class="file-upload-section">
+        <input type="file" id="fileInput" aria-label="Upload study material" accept=".pdf,.txt">
+        <button onclick="readFile()" id="generateBtn">📚 Generate Reviewer + Quiz</button>
+    </div>
+
+    <div class="error" id="errorMessage" role="alert"></div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>🔄 Generating your study materials...</p>
+    </div>
+
+    <div class="section">
+        <h2>📋 Reviewer Summary</h2>
+        <div id="reviewer"></div>
+        <div class="button-group" id="reviewerButtons" style="display: none;">
+            <button onclick="downloadReviewer()">⬇️ Download Reviewer</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🔄 Flashcards</h2>
+        <p style="color: #666; font-size: 14px;">Click each card to flip between question and answer</p>
+        <div id="flashcards"></div>
+    </div>
+
+    <div class="section">
+        <h2>❓ Quiz</h2>
+        <div id="quiz"></div>
+        <div class="button-group" id="quizButtons" style="display: none;">
+            <button onclick="submitQuiz()">✅ Submit Quiz</button>
+        </div>
+    </div>
+
+    <div id="score"></div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
